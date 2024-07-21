@@ -1,0 +1,29 @@
+"Company","Insurance Type","Monthly Premium","Duration","Sum Assured"
+"HDFC","Life Insurance",2000,15 yrs,50L
+"HDFC","Life Insurance",3500,20 yrs,1 cr
+"HDFC","Life Insurance",5000,30 yrs,2 cr
+"HDFC","Car/Bike Insurance",2500,15 yrs,50L
+"HDFC","Car/Bike Insurance",3500,20 yrs,1 cr
+"HDFC","Car/Bike Insurance",5500,30 yrs,2 cr
+"HDFC","Home Insurance",2000,15 yrs,50L
+"HDFC","Home Insurance",4500,22 yrs,1 cr
+"HDFC","Home Insurance",5500,35 yrs,2 cr
+"MAX","Life Insurance",2500,25 yrs,50L
+"MAX","Life Insurance",3300,22 yrs,1 cr
+"MAX","Life Insurance",4500,35 yrs,2 cr
+"MAX","Car/Bike Insurance",2000,20 yrs,50L
+"MAX","Car/Bike Insurance",4000,25 yrs,1 cr
+"MAX","Car/Bike Insurance",5500,30 yrs,2 cr
+"MAX","Home Insurance",2000,15 yrs,50L
+"MAX","Home Insurance",3500,20 yrs,1 cr
+"MAX","Home Insurance",5000,30 yrs,2 cr
+"ICICI","Life Insurance",2799,25 yrs,50L
+"ICICI","Life Insurance",3499,30 yrs,1 cr
+"ICICI","Life Insurance",3999,35 yrs,2 cr
+"ICICI","Car/Bike Insurance",2499,20 yrs,50L
+"ICICI","Car/Bike Insurance",4499,25 yrs,1 cr
+"ICICI","Car/Bike Insurance",4999,30 yrs,2 cr
+"ICICI","Home Insurance",2699,15 yrs,50L
+"ICICI","Home Insurance",3599,20 yrs,1 cr
+"ICICI","Home Insurance",4599,30 yrs,2 cr
+
