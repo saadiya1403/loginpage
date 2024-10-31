@@ -1,16 +1,15 @@
 import streamlit as st
 import pandas as pd
-# import numpy as np
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from imblearn.over_sampling import SMOTE
 from xgboost import XGBClassifier
-from sklearn.preprocessing import OneHotEncoder
-
 
 @st.cache_data
 def load_data():
@@ -19,120 +18,116 @@ def load_data():
 
 data = load_data()
 
-st.write("Dataset Overview")
+st.write("### Dataset Overview")
 st.write(data.head())
 
 def preprocess_data(data):
+    # Checking if the target 'Response' exists
     if 'Response' not in data.columns:
-        st.error("Target column 'Response' not found in the training dataset.")
+        st.error("Target column 'Response' not found.")
         return None, None, None
     
+    # Features and target
     X = data.drop(columns=['Response', 'Id'], errors='ignore')
     y = data['Response']
     
+    # Encoding categorical variables
     for column in X.columns:
         if X[column].dtype == 'object':
             le = LabelEncoder()
             X[column] = le.fit_transform(X[column].astype(str))
     
+    # Handling missing values
     X = X.apply(lambda x: x.fillna(x.mean()) if x.dtype.kind in 'biufc' else x.fillna(x.mode()[0]))
     
+    # Scaling numerical data
     scaler = MinMaxScaler()
     X[X.select_dtypes(include=['int64', 'float64']).columns] = scaler.fit_transform(X.select_dtypes(include=['int64', 'float64']))
     
-    # Encode the target variable if necessary
+    # Label encoding for target
     if y.dtype == 'object' or y.dtype == 'category':
         le = LabelEncoder()
         y = le.fit_transform(y)
 
     return X, y, scaler
 
-X, y, scaler = preprocess_data(data) 
+X, y, scaler = preprocess_data(data)
 
 if X is None or y is None:
     st.stop()
 
-# Check the distribution of the Response variable
-st.write("Distribution of the Response variable:")
-st.write(y.value_counts())
+# Apply SMOTE for balancing classes
+smote = SMOTE(random_state=42)
+X_resampled, y_resampled = smote.fit_resample(X, y)
 
 # Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Encode the target variable after splitting
-if y_train.dtype == 'object' or y_train.dtype == 'category':
-    le = LabelEncoder()
-    y_train = le.fit_transform(y_train)
-    y_test = le.transform(y_test)
+X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.4, random_state=42)
 
 # Dropdown to select model
 model_name = st.selectbox("Choose a Model", ("Random Forest", "Extra Trees", "Decision Tree", "Logistic Regression", "SVM", "XGBoost", "GBM"))
 
-# Initialize model based on selection
+# Initialize model with class weights if applicable
 if model_name == "Random Forest":
     model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
 elif model_name == "Extra Trees":
-    model = ExtraTreesClassifier(n_estimators=100, random_state=42)
+    model = ExtraTreesClassifier(n_estimators=100, random_state=42, class_weight='balanced')
 elif model_name == "Decision Tree":
-    model = DecisionTreeClassifier(random_state=42)
+    model = DecisionTreeClassifier(random_state=42, class_weight='balanced')
 elif model_name == "Logistic Regression":
-    model = LogisticRegression(max_iter=1000)
+    model = LogisticRegression(max_iter=1000, class_weight='balanced')
 elif model_name == "SVM":
-    model = SVC(probability=True)
+    model = SVC(probability=True, class_weight='balanced')
 elif model_name == "XGBoost":
-    model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')  # Ensure eval_metric is set
+    model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', scale_pos_weight=(y_train == 0).sum() / (y_train == 1).sum())
 elif model_name == "GBM":
-    model = GradientBoostingClassifier()
+    model = GradientBoostingClassifier(learning_rate=0.1, max_depth=4, n_estimators=300, min_samples_leaf=5)
 
 # Train the model
 model.fit(X_train, y_train)
 
-# Model accuracy
+# Model predictions and evaluation
 y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
-st.write(f"Model Accuracy ({model_name}): ", accuracy)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+
+st.write(f"### Model Evaluation for {model_name}")
+st.write(f"Accuracy: {accuracy:}")
+st.write(f"Precision: {precision:}")
+st.write(f"Recall: {recall:}")
+st.write(f"F1 Score: {f1:}")
 
 # Confusion matrix
 conf_matrix = confusion_matrix(y_test, y_pred)
-st.write("Confusion Matrix: ")
+st.write("### Confusion Matrix:")
 st.write(conf_matrix)
 
 # Feature importances (if applicable)
 if hasattr(model, 'feature_importances_'):
     feature_importances = pd.Series(model.feature_importances_, index=X.columns)
-    st.write("Feature Importances:")
-    st.write(feature_importances.sort_values(ascending=False))
+    st.write("### Feature Importances:")
+    st.bar_chart(feature_importances.sort_values(ascending=False))
 
-# Dropdown for user input
-st.write("Select Information for Risk Assessment:")
-
-# Define a single dropdown with all columns
+# User input for prediction
+st.write("### Select Features for Risk Assessment")
 all_columns = X.columns.tolist()
 selected_columns = st.multiselect("Select Features", all_columns)
 
-# Input fields for the selected features
 input_values = {}
 for column in selected_columns:
-    input_values[column] = st.number_input(f"Input a value for {column}", value=0.0, key=column)
+    input_values[column] = st.number_input(f"Input value for {column}", value=0.0)
 
-# Prepare input data for prediction
 if st.button("Assess Risk"):
-    input_data = pd.DataFrame([X.mean()], columns=X.columns)  # Start with default mean values
-    
+    input_data = pd.DataFrame([X.mean()], columns=X.columns)
     for column, value in input_values.items():
-        input_data[column] = value  # Replace the selected features with user inputs
-
-    # Apply the same scaling as used during training
-    numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
-    input_data[numeric_features] = scaler.transform(input_data[numeric_features])
+        input_data[column] = value
     
-    st.write("Input Data:")
-    st.write(input_data)
-    
+    input_data[X.select_dtypes(include=['int64', 'float64']).columns] = scaler.transform(input_data[X.select_dtypes(include=['int64', 'float64']).columns])
     prediction = model.predict(input_data)
-    st.write("Predicted Risk Assessment: ", prediction[0])
+    st.write("### Predicted Risk Assessment: ", prediction[0])
 
-# Display predictions alongside the original data
 data['Predicted_Risk'] = model.predict(X)
-st.write("Predictions on the Dataset:")
-st.write(data[['Id', 'Response', 'Predicted_Risk']])
+st.write("### Predictions on the Dataset:")
+st.write(data[['Response', 'Predicted_Risk']])
+
