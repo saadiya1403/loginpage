@@ -64,7 +64,7 @@ X_resampled, y_resampled = smote.fit_resample(X, y)
 X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.4, random_state=42)
 
 # Dropdown to select model
-model_name = st.selectbox("Choose a Model", ("Random Forest", "Extra Trees", "Decision Tree", "Logistic Regression", "SVM", "XGBoost", "GBM"))
+model_name = st.selectbox("Choose a Model", ("Random Forest", "Extra Trees", "Decision Tree", "Logistic Regression", "SVM", "GBM"))
 
 # Initialize model with class weights if applicable
 if model_name == "Random Forest":
@@ -77,8 +77,6 @@ elif model_name == "Logistic Regression":
     model = LogisticRegression(max_iter=1000, class_weight='balanced')
 elif model_name == "SVM":
     model = SVC(probability=True, class_weight='balanced')
-elif model_name == "XGBoost":
-    model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', scale_pos_weight=(y_train == 0).sum() / (y_train == 1).sum())
 elif model_name == "GBM":
     model = GradientBoostingClassifier(learning_rate=0.1, max_depth=4, n_estimators=300, min_samples_leaf=5)
 
